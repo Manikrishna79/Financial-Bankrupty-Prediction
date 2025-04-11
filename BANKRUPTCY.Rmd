@@ -1,0 +1,412 @@
+---
+title: "BANKRUPTCY"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+require(dplyr)
+require(caTools)
+require(caret)
+require(dplyr)
+require(ROSE)
+require(caretEnsemble)
+require(randomForest)
+require(MASS)
+require(ROCR)
+```
+
+
+## Alt man plus new variables USE ALTPLUSNEWDATA.CSV
+```{r}
+a=read.csv(file.choose(),header = T)
+a %>% head()
+a=a[-1]
+b=a
+
+b$bankruptcy=as.factor(b$bankruptcy)
+levels(b$bankruptcy)=c("no","yes")
+```
+
+
+```{r}
+a %>% glimpse()
+a$bankruptcy=as.factor(a$bankruptcy)
+```
+
+
+```{r}
+set.seed(107)
+i=createDataPartition(a$bankruptcy,p=0.60,list = FALSE)
+tr=a[i,]
+te=a[-i,]
+tr %>% nrow()
+te %>% nrow()
+```
+
+```{r message=FALSE, warning=FALSE}
+model= train(
+  form = bankruptcy ~.,
+  data = tr,
+  method = "glm",
+  trControl = trainControl(method = "cv", number = 5),
+  family = "binomial",
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model
+```
+```{r}
+pred=predict(model,newdata = te)
+confusionMatrix(te$bankruptcy,pred,positive = "1")
+```
+```{r}
+v1=varImp(model)
+plot(v1)
+```
+
+```{r}
+model1= train(
+  form = bankruptcy ~.,
+  data = tr,
+  method = "svmLinear",
+  trControl = trainControl(method = "cv", number = 5),
+  family = "binomial",
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model1
+```
+```{r}
+v2=varImp(model1)
+plot(v2)
+```
+
+
+```{r}
+pred1=predict(model1,newdata = te)
+confusionMatrix(te$bankruptcy,pred1,positive = "1")
+```
+
+
+```{r}
+model2= train(
+  form = bankruptcy ~.,
+  data = tr,
+  method = "bayesglm",
+  trControl = trainControl(method = "cv", number = 5),
+  family = "binomial",
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model2
+```
+
+```{r}
+pred2=predict(model2,newdata = te)
+confusionMatrix(te$bankruptcy,pred2,positive = "1")
+```
+```{r}
+v3=varImp(model2)
+plot(v3)
+```
+
+
+
+```{r}
+model3= train(
+  form = bankruptcy ~.,
+  data = tr,
+  method = "knn",
+  trControl = trainControl(method = "cv", number = 5),
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model3
+```
+
+```{r}
+pred3=predict(model3,newdata = te)
+confusionMatrix(te$bankruptcy,pred3,positive = "1")
+```
+```{r}
+v4=varImp(model3)
+plot(v4)
+```
+
+
+```{r}
+model4= train(
+  form = bankruptcy ~.,
+  data = tr,
+  method = "svmRadial",
+  trControl = trainControl(method = "cv", number = 5),
+  family = "binomial",
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model4
+```
+
+```{r}
+pred4=predict(model4,newdata = te)
+confusionMatrix(te$bankruptcy,pred4,positive = "1")
+```
+
+```{r}
+v5=varImp(model4)
+plot(v5)
+```
+
+```{r}
+knn1 = train(
+  bankruptcy~ .,
+  data = tr,
+  method = "knn",
+  trControl = trainControl(method = "cv", number = 5),
+  preProcess = c("center", "scale"),
+  tuneGrid = expand.grid(k = seq(1, 101, by = 2))
+)
+knn1
+```
+```{r}
+knn1$bestTune
+```
+
+```{r}
+predknn1=predict(knn1,newdata = te)
+confusionMatrix(te$bankruptcy,predknn1,positive = "1")
+```
+```{r}
+v5=varImp(knn1)
+plot(v5)
+```
+
+```{r message=FALSE, warning=FALSE}
+list=c("knn","glm","bayesglm","svmLinear","svmRadial")
+models=caretList(bankruptcy~.,data=b,trControl = trainControl(method = "cv",number = 5, classProbs=TRUE), methodList = list)
+```
+
+```{r}
+res=resamples(models)
+dotplot(res)
+data=res$values
+```
+
+```{r}
+summary(res)
+modelCor(res)
+```
+
+```{r}
+splom(res)
+```
+
+```{r}
+set.seed(117)
+stack.glm <- caretStack(models, method="glm", metric="Accuracy")
+print(stack.glm)
+```
+
+```{r}
+set.seed(117)
+stack.rf <- caretStack(models, method="rf", metric="Accuracy")
+print(stack.rf)
+```
+## Alt man variable Bankruptcy use ALT MAN DATA.CSV
+```{r}
+aalt=read.csv(file.choose(),header = T)
+aalt %>% head()
+aalt=aalt[-1]
+balt=aalt
+
+balt$bankruptcy=as.factor(balt$bankruptcy)
+levels(balt$bankruptcy)=c("no","yes")
+```
+
+```{r}
+aalt %>% glimpse()
+aalt$bankruptcy=as.factor(aalt$bankruptcy)
+```
+
+```{r}
+set.seed(107)
+ialt=createDataPartition(aalt$bankruptcy,p=0.60,list = FALSE)
+tralt=aalt[i,]
+tealt=aalt[-i,]
+tralt %>% nrow()
+tealt %>% nrow()
+```
+
+```{r message=FALSE, warning=FALSE}
+modelalt= train(
+  form = bankruptcy ~.,
+  data = tralt,
+  method = "glm",
+  trControl = trainControl(method = "cv", number = 5),
+  family = "binomial",
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+modelalt
+```
+
+```{r}
+predalt=predict(modelalt,newdata = tealt)
+confusionMatrix(tealt$bankruptcy,predalt,positive = "1")
+```
+
+```{r}
+v1alt=varImp(modelalt)
+plot(v1alt)
+```
+
+```{r}
+model1alt= train(
+  form = bankruptcy ~.,
+  data = tralt,
+  method = "svmLinear",
+  trControl = trainControl(method = "cv", number = 5),
+  family = "binomial",
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model1alt
+```
+
+```{r}
+v2alt=varImp(model1alt)
+plot(v2alt)
+```
+
+```{r}
+pred1alt=predict(model1alt,newdata = tealt)
+confusionMatrix(tealt$bankruptcy,pred1alt,positive = "1")
+```
+
+```{r message=FALSE, warning=FALSE}
+model2alt= train(
+  form = bankruptcy ~.,
+  data = tralt,
+  method = "bayesglm",
+  trControl = trainControl(method = "cv", number = 5),
+  family = "binomial",
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model2alt
+```
+
+```{r}
+pred2alt=predict(model2alt,newdata = tealt)
+confusionMatrix(tealt$bankruptcy,pred2alt,positive = "1")
+```
+
+```{r}
+v3alt=varImp(model2alt)
+plot(v3alt)
+```
+
+```{r}
+model3alt= train(
+  form = bankruptcy ~.,
+  data = tralt,
+  method = "knn",
+  trControl = trainControl(method = "cv", number = 5),
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model3alt
+```
+
+```{r}
+pred3alt=predict(model3alt,newdata = tealt)
+confusionMatrix(tealt$bankruptcy,pred3alt,positive = "1")
+```
+
+```{r}
+v4alt=varImp(model3alt)
+plot(v4alt)
+```
+
+```{r}
+model4alt= train(
+  form = bankruptcy ~.,
+  data = tralt,
+  method = "svmRadial",
+  trControl = trainControl(method = "cv", number = 5),
+  family = "binomial",
+  preProcess = c("center", "scale"),
+  tuneLength=5
+)
+model4alt
+```
+
+```{r}
+pred4alt=predict(model4alt,newdata = tealt)
+confusionMatrix(tealt$bankruptcy,pred4alt,positive = "1")
+```
+
+```{r}
+v5alt=varImp(model4alt)
+plot(v5alt)
+```
+```{r}
+knn1alt = train(
+  bankruptcy~ .,
+  data = tralt,
+  method = "knn",
+  trControl = trainControl(method = "cv", number = 5),
+  preProcess = c("center", "scale"),
+  tuneGrid = expand.grid(k = seq(1, 101, by = 2))
+)
+knn1alt
+```
+```{r}
+predknn1alt=predict(knn1alt,newdata = tealt)
+confusionMatrix(tealt$bankruptcy,predknn1alt,positive = "1")
+
+```
+
+```{r}
+v5alt=varImp(knn1alt)
+plot(v5alt)
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+listalt=c("knn","glm","bayesglm","svmLinear","svmRadial")
+modelsalt=caretList(bankruptcy~.,data=balt,trControl = trainControl(method = "cv",number = 5, classProbs=TRUE), methodList = listalt)
+```
+
+```{r}
+resalt=resamples(modelsalt)
+dotplot(resalt)
+dataalt=resalt$values
+```
+
+```{r}
+summary(resalt)
+modelCor(resalt)
+```
+
+```{r}
+splom(resalt)
+```
+
+```{r}
+set.seed(117)
+stack.glmalt <- caretStack(modelsalt, method="glm", metric="Accuracy")
+print(stack.glmalt)
+```
+
+```{r}
+set.seed(117)
+stack.rfalt <- caretStack(modelsalt, method="rf", metric="Accuracy")
+print(stack.rfalt)
+```
+
